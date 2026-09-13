@@ -31,6 +31,32 @@ npm run format:check   # prettier
 npm test               # vitest + testing-library (fetch is mocked, no backend needed)
 ```
 
+## Production
+
+`next.config.mjs` uses `output: 'standalone'`, disables `X-Powered-By` and sets security headers
+(`X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS) on every route.
+`GET /api/health` returns `{ status, version, uptime }` for load balancers and the Docker `HEALTHCHECK`.
+
+```bash
+cp .env.production.example .env.production      # NEXT_PUBLIC_API_URL=https://api.example.it
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+curl localhost:3001/api/health
+```
+
+`NEXT_PUBLIC_*` values are inlined at **build** time, so the image is built per environment
+(`--build-arg NEXT_PUBLIC_API_URL=...`); the release workflow reads it from the repository variable
+`NEXT_PUBLIC_API_URL`. The image runs as the `node` user on `:3001`. Terminate TLS in a reverse proxy
+(same one as the backend — see `artisan-saas-backend/DEPLOYMENT.md`) and set the backend's
+`CORS_ORIGIN` to this app's public origin.
+
+GitHub Actions workflows (CI: lint/format/typecheck/test/build + image smoke test; release: GHCR
+publish on `main`/`v*` tags) are in `deploy/github-workflows/` — the PR bot lacks the `workflow` scope,
+so enable them once with:
+
+```bash
+mkdir -p .github/workflows && cp deploy/github-workflows/*.yml .github/workflows/ && git add .github && git commit -m "ci: enable workflows" && git push
+```
+
 ## Structure
 
 ```

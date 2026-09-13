@@ -1,0 +1,26 @@
+# Production frontend. Pair with artisan-saas-backend/docker-compose.prod.yml behind one reverse proxy.
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/nourabm33/artisan-saas-frontend:latest}
+    build:
+      context: .
+      target: production
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Artisan SaaS}
+        APP_RELEASE: ${APP_RELEASE:-dev}
+    restart: unless-stopped
+    ports:
+      - '${FRONTEND_PORT:-3001}:3001'
+    environment:
+      APP_RELEASE: ${APP_RELEASE:-dev}
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:3001/api/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '5' }
