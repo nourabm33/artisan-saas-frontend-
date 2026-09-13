@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Artisan SaaS – Dashboard artigiano
 
-## Getting Started
+Next.js 14 (App Router, TypeScript, Tailwind) dashboard for the [artisan-saas-backend](https://github.com/nourabm33/artisan-saas-backend) API.
 
-First, run the development server:
+Artisans log in and:
+
+- see incoming client requests (`/dashboard/requests`) with service, vehicle data, photos and WhatsApp history
+- edit the auto-generated quote (labor hours, discount, notes) and send it to the client on WhatsApp
+- manage appointments created when the client accepts (`/dashboard/appointments`): confirm, start, complete, cancel, reschedule
+- see per-client history and simple analytics
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:3000
+npm install
+npm run dev                        # http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The backend must be running on `NEXT_PUBLIC_API_URL` with `CORS_ORIGIN=http://localhost:3001` (the backend's
+default). Demo credentials from the backend seed: `demo@gommista.it` / `Password123!`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```bash
+npm run dev            # next dev on :3001
+npm run build && npm start
+npm run lint           # next lint
+npm run typecheck      # tsc --noEmit
+npm run format:check   # prettier
+npm test               # vitest + testing-library (fetch is mocked, no backend needed)
+```
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/app            routes: / , (auth)/login , (auth)/register , dashboard/{requests,[id],appointments,clients,analytics}
+src/components     ui (Button, Card, Badge, Input, Modal), layout (Navbar, Sidebar, Footer), requests, appointments, shared
+src/hooks          useAuth (context + localStorage session), useFetch, useRequests, useAppointments, useServiceTemplates
+src/lib            api.ts (typed client, auto refresh on 401), auth.ts, constants.ts, format.ts
+src/types          backend DTO mirrors
+tests              vitest
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Auth: access/refresh tokens live in `localStorage`; `lib/api.ts` retries a request once after refreshing on 401 and
+clears the session (redirecting to `/login`) when the refresh fails.
